@@ -218,7 +218,7 @@ class NmapToCSVConverter:
             self.logger.error("无数据可写入")
             return
         try:
-            if not http_io:
+            if not csv_http_io:
                 # 写文件
                 with open(self.output_filename, 'w', newline='', encoding='utf-8') as f:
                     writer = csv.DictWriter(f, fieldnames=self.CSV_HEADERS)
