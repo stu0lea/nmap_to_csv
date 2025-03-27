@@ -29,7 +29,7 @@ class NmapToCSVConverter:
         "产品", "版本", "其他信息", "URL", "标题", "响应码"
     ]
 
-    def __init__(self, req_title=False, max_workers=20, output_filename='result.csv'):
+    def __init__(self, req_title=False, max_workers=50, output_filename='result.csv'):
         self.req_title = req_title
         self.max_workers = max_workers
         self.output_filename = output_filename
@@ -212,17 +212,25 @@ class NmapToCSVConverter:
                     pbar.update(1)
         return self.result
 
-    def write_csv(self):
+    def write_csv(self, csv_http_io=False):
         """写入CSV文件"""
         if not self.result:
             self.logger.error("无数据可写入")
             return
-
         try:
-            with open(self.output_filename, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=self.CSV_HEADERS)
+            if not http_io:
+                # 写文件
+                with open(self.output_filename, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.DictWriter(f, fieldnames=self.CSV_HEADERS)
+                    writer.writeheader()
+                    writer.writerows(self.result)
+            else:
+                # 返回给浏览器
+                csv_http_io = StringIO()
+                writer = csv.DictWriter(csv_io, fieldnames=self.CSV_HEADERS)
                 writer.writeheader()
                 writer.writerows(self.result)
+                return csv_http_io
             self.logger.info(f"文件已保存:{self.output_filename}")
         except IOError as e:
             self.logger.error(f"写入失败:{str(e)}")
@@ -255,7 +263,7 @@ if __name__ == "__main__":
     )
     parser.add_argument('-r', '--req-title', action='store_true',
                         help='获取HTTP标题和状态码')
-    parser.add_argument('-t', type=int, default=20,
+    parser.add_argument('-t', type=int, default=50,
                         help='并发线程数（默认20）')
     parser.add_argument('-o', '--output', default='result.csv',
                         help='指定输出CSV文件名（默认：result.csv）')
