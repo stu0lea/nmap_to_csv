@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 @author: stu0lea
-@file: nmap_to_csv_class.py
-@version: 3.1 (支持多文件合并)
+@file: nmap_to_csv.py
+@version: 3.0
+@update: 2025/03/28
 """
 import xml.etree.ElementTree as ET
 import sys
@@ -43,7 +44,7 @@ class NmapToCSVConverter:
         if not logger.handlers:
             handler = logging.StreamHandler()
             formatter = logging.Formatter(
-                "%(asctime)s %(pathname)s:%(lineno)d:%(funcName)s [%(levelname)s] %(message)s"
+                "%(asctime)s %(filename)s:%(lineno)d:%(funcName)s [%(levelname)s] %(message)s"
             )
             handler.setFormatter(formatter)
             logger.addHandler(handler)
@@ -72,24 +73,24 @@ class NmapToCSVConverter:
                     url, headers=headers, timeout=5,
                     verify=False, allow_redirects=True
                 )
+                response.encoding = response.apparent_encoding  # 自动检测编码防止编码错误
                 return (
                     url,
                     self._parse_title(response.text).strip(),
                     str(response.status_code))
             except RequestException:
                 continue
-        return ('', '', '')
+        return '', '', ''
 
     def parse_nmap(self, in_file):
-        """解析Nmap XML文件并追加结果"""
-        """解析Nmap XML文件并追加结果"""
+        """解析Nmap XML文件"""
         # 获取实际文件名
         if isinstance(in_file, str):
             filename = in_file
         else:
             filename = getattr(in_file, 'name', '未知文件')
 
-        self.logger.info(f"解析文件: {filename}")
+        self.logger.info(f"解析文件:{filename}")
         current_result = []
 
         try:
@@ -98,10 +99,10 @@ class NmapToCSVConverter:
             hosts = list(root.iter('host'))
             total_hosts = len(hosts)
         except ET.ParseError as e:
-            self.logger.error(f"XML解析失败: {str(e)}")
+            self.logger.error(f"XML解析失败:{str(e)}")
             sys.exit(1)
 
-        with tqdm(total=total_hosts, desc=f"解析进度 [{filename}]", unit="host") as pbar:
+        with tqdm(total=total_hosts, desc=f"解析进度[{filename}]", unit="host") as pbar:
             ip_set = set()
             open_ports = 0
 
@@ -211,7 +212,6 @@ class NmapToCSVConverter:
                     pbar.update(1)
         return self.result
 
-
     def write_csv(self):
         """写入CSV文件"""
         if not self.result:
@@ -223,33 +223,34 @@ class NmapToCSVConverter:
                 writer = csv.DictWriter(f, fieldnames=self.CSV_HEADERS)
                 writer.writeheader()
                 writer.writerows(self.result)
-            self.logger.info(f"文件已保存: {self.output_filename}")
+            self.logger.info(f"文件已保存:{self.output_filename}")
         except IOError as e:
-            self.logger.error(f"写入失败: {str(e)}")
+            self.logger.error(f"写入失败:{str(e)}")
 
     def print_statistics(self):
         """打印统计信息"""
         # 各文件统计
         for filename, stats in self.file_stats.items():
             self.logger.info(
-                f"各文件统计({filename}): IP数量={stats['ip_count']}, 开放端口={stats['open_ports']}"
+                f"各文件统计({filename}):IP数量={stats['ip_count']},开放端口={stats['open_ports']}"
             )
 
         # 总体统计
         total_ips = sum(stats['ip_count'] for stats in self.file_stats.values())
         total_ports = sum(stats['open_ports'] for stats in self.file_stats.values())
         stats_msg = [
-            f"总体统计：IP总数: {total_ips},开放端口总数: {total_ports}"
+            f"总体统计IP总数:{total_ips},开放端口总数:{total_ports}"
         ]
         if self.req_title:
             web_count = sum(1 for e in self.result if e.get('响应码'))
-            stats_msg.append(f"Web服务: {web_count}")
+            stats_msg.append(f"Web服务:{web_count}")
         self.logger.info(",".join(stats_msg))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Nmap XML转CSV工具（支持多文件合并）",
+        description="""Nmap生成的XML转CSV工具
+推荐扫描参数：nmap -sS -Pn -n -v -p1-65535 目标IP -T4 --min-rate=2000 --host-timeout=5m -oX result.xml""",
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument('-r', '--req-title', action='store_true',
@@ -259,11 +260,8 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', default='result.csv',
                         help='指定输出CSV文件名（默认：result.csv）')
     parser.add_argument('nmap_xml_files', nargs='+',
-                        help="""Nmap XML文件列表
-推荐扫描参数：
-nmap -sS -Pn -n -v -p- 目标IP -T4 --min-rate=2000 -oX result.xml""")
+                        help="""XML文件列表，多个文件空格隔开""")
     args = parser.parse_args()
-
     converter = NmapToCSVConverter(
         req_title=args.req_title,
         max_workers=args.t,
