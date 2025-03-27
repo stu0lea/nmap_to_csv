@@ -227,7 +227,7 @@ class NmapToCSVConverter:
             else:
                 # 返回给浏览器
                 csv_http_io = StringIO()
-                writer = csv.DictWriter(csv_io, fieldnames=self.CSV_HEADERS)
+                writer = csv.DictWriter(csv_http_io, fieldnames=self.CSV_HEADERS)
                 writer.writeheader()
                 writer.writerows(self.result)
                 return csv_http_io
