@@ -67,7 +67,8 @@ def parse_nmap(in_file):
     try:
         root = ET.parse(in_file).getroot() if not hasattr(in_file, 'read') else ET.fromstring(in_file.getvalue())
         # 预解析统计主机总数
-        total_hosts = sum(1 for _ in root.iter('host'))
+        hosts = list(root.iter('host'))
+        total_hosts = sum(1 for _ in hosts)
     except ET.ParseError as e:
         logger.error(f"XML解析失败: {str(e)}")
         sys.exit(1)
@@ -75,9 +76,10 @@ def parse_nmap(in_file):
     ip_open_ports = defaultdict(int)  # 统计每个IP的开放端口数
     # 添加进度条：总主机数为进度条长度，动态显示IP
     with tqdm(total=total_hosts, desc="解析xml进度", unit="host") as pbar:
-        for host in root.iter('host'):
+        for host in hosts:
             try:
-                if host.find('status').get('state') == 'down':
+                status = host.find('status')
+                if status is None or status.get('state') == 'down':
                     pbar.update(1)
                     continue
                 ip = host.find('address').get('addr')
