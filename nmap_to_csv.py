@@ -258,7 +258,7 @@ class NmapToCSVConverter:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="""Nmap生成的XML转CSV工具
-推荐扫描参数：nmap -sS -Pn -n -v -p1-65535 目标IP -T4 --min-rate=2000 --host-timeout=5m -oX result.xml""",
+推荐扫描参数：nmap -sS -Pn -n -v -p1-65535 目标IP -T4 --min-rate=2000 -oX result.xml""",
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument('-r', '--req-title', action='store_true',
