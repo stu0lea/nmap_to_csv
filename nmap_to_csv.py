@@ -238,16 +238,15 @@ class NmapToCSVConverter:
     def print_statistics(self):
         """打印统计信息"""
         # 各文件统计
-        for filename, stats in self.file_stats.items():
-            self.logger.info(
-                f"各文件统计({filename}):IP数量={stats['ip_count']},开放端口={stats['open_ports']}"
-            )
-
-        # 总体统计
+        # for filename, stats in self.file_stats.items():
+        #     self.logger.info(
+        #         f"各文件统计({filename}):IP数量={stats['ip_count']},开放端口={stats['open_ports']}"
+        #     )
+        # # 总体统计
         total_ips = sum(stats['ip_count'] for stats in self.file_stats.values())
         total_ports = sum(stats['open_ports'] for stats in self.file_stats.values())
         stats_msg = [
-            f"总体统计IP总数:{total_ips},开放端口总数:{total_ports}"
+            f"总体统计:IP总数={total_ips},开放端口总数={total_ports}"
         ]
         if self.req_title:
             web_count = sum(1 for e in self.result if e.get('响应码'))
